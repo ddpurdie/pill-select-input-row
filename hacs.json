@@ -1,0 +1,6 @@
+{
+  "name": "Pill Select Input Row",
+  "render_as": "javascript",
+  "type": "plugin",
+  "filename": "pill-select-input-row.js"
+}

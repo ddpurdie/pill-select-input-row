@@ -2,7 +2,7 @@ const LitElement = Object.getPrototypeOf(customElements.get("ha-panel-lovelace")
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
 
-class PillSelectInputRow extends LitElement {
+class CustomSelectRow extends LitElement {
   static get properties() {
     return {
       hass: {},
@@ -37,12 +37,10 @@ class PillSelectInputRow extends LitElement {
     const entityId = this.config.entity;
     const stateObj = this.hass.states[entityId];
     
-    // 1. Check if entity exists
     if (!stateObj) {
       return html`<hui-error-entity-row .entity=${entityId}></hui-error-entity-row>`;
     }
 
-    // 2. Domain check: Ensure it is an input_select
     const domain = entityId.split(".")[0];
     if (domain !== "input_select") {
       return html`
@@ -54,18 +52,22 @@ class PillSelectInputRow extends LitElement {
 
     const options = stateObj.attributes.options || [];
     const isLocked = this.config.locked && !this._unlocked;
-    const customWidth = this.config.width || "auto";
     const isActive = this.config.active_options?.includes(stateObj.state);
-    const iconColor = (isActive && this.config.active_color) ? `color: ${this.config.active_color};` : undefined
-     
+    const customWidth = this.config.width || "50%";
+    
+    const iconColor = isActive 
+      ? (this.config.active_color || "var(--paper-item-icon-active-color, #fdd835)") 
+      : "var(--paper-item-icon-color, #44739e)";
+
     return html`
       <div class="container">
         <state-badge 
-          .hass=${this.hass} .stateObj=${stateObj} 
+          .hass=${this.hass} 
+          .stateObj=${stateObj} 
           .overrideIcon=${this.config.icon}
           @click=${this._handleMoreInfo}
-          style="${iconColor || ''}"
-          class="pointer">
+          class="pointer main-icon"
+          style="--badge-icon-color: ${iconColor}; color: ${iconColor};">
         </state-badge>
         
         <div class="info pointer" @click=${this._handleMoreInfo}>
@@ -81,10 +83,9 @@ class PillSelectInputRow extends LitElement {
             </ha-icon>
           ` : ""}
           
-          <div class="menu-container">
+          <div class="menu-container" style="width: ${customWidth};">
             <div class="pill-trigger ${isLocked ? 'disabled' : ''}" 
                  id="trigger"
-                 style="width: ${customWidth};"
                  @click=${this._toggleMenu}>
                <span class="value-text">${stateObj.state}</span>
                <ha-icon icon="mdi:chevron-down"></ha-icon>
@@ -110,7 +111,6 @@ class PillSelectInputRow extends LitElement {
 
   _toggleMenu(ev) {
     if (this.config.locked && !this._unlocked) return;
-    
     if (!this._open) {
       const rect = this.shadowRoot.getElementById("trigger").getBoundingClientRect();
       const windowHeight = window.innerHeight;
@@ -157,20 +157,60 @@ class PillSelectInputRow extends LitElement {
   static get styles() {
     return css`
       .container { display: flex; align-items: center; padding: 4px 0; }
-      .info { margin-left: 16px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      
+      .info { 
+        margin-left: 16px; 
+        margin-right: 16px;
+        white-space: nowrap; 
+        overflow: hidden; 
+        text-overflow: ellipsis; 
+        flex: 0 1 auto; 
+      }
+      
       .pointer { cursor: pointer; }
-      .selection-wrapper { display: flex; align-items: center; justify-content: flex-end; }
-      .lock-toggle { --mdc-icon-size: 18px; margin-right: 8px; cursor: pointer; }
+
+      /* Force the state-badge icon color */
+      .main-icon {
+        --mdc-icon-size: 24px;
+      }
+
+      .selection-wrapper { 
+        display: flex; 
+        align-items: center; 
+        justify-content: flex-end; 
+        flex: 1;
+        min-width: 0;
+      }
+
+      .lock-toggle { --mdc-icon-size: 18px; margin-right: 8px; cursor: pointer; flex-shrink: 0; }
       .is-locked { color: var(--warning-color); }
       .is-unlocked { color: var(--success-color); }
-      .pill-trigger {
-        display: flex; align-items: center; justify-content: space-between;
-        background-color: rgba(155, 155, 155, 0.15); color: var(--primary-text-color);
-        border-radius: 12px; height: 32px; min-width: 80px; padding: 0 12px;
-        cursor: pointer; font-size: 13px; box-sizing: border-box;
+      
+      .menu-container { 
+        position: relative; 
+        display: flex; 
+        justify-content: flex-end;
       }
+
+      .pill-trigger {
+        display: flex; 
+        align-items: center; 
+        justify-content: space-between;
+        background-color: rgba(155, 155, 155, 0.15); 
+        color: var(--primary-text-color);
+        border-radius: 12px; 
+        height: 32px; 
+        width: 100%;
+        min-width: 60px; 
+        padding: 0 12px;
+        cursor: pointer; 
+        font-size: 13px; 
+        box-sizing: border-box;
+      }
+
       .pill-trigger.disabled { cursor: not-allowed; opacity: 0.5; }
-      .pill-trigger ha-icon { --mdc-icon-size: 16px; color: var(--secondary-text-color); margin-left: 4px; }
+      .pill-trigger ha-icon { --mdc-icon-size: 16px; color: var(--secondary-text-color); margin-left: 4px; flex-shrink: 0; }
+
       .custom-dropdown {
         display: none; position: fixed; 
         background-color: var(--ha-card-background, var(--card-background-color, white));
@@ -184,9 +224,9 @@ class PillSelectInputRow extends LitElement {
       .dropdown-item.active { color: var(--primary-color); font-weight: bold; }
       .dropdown-item ha-icon { --mdc-icon-size: 16px; margin-left: 12px; }
       .overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10000; background: transparent; }
-      .suffix { margin-left: 8px; color: var(--secondary-text-color); font-size: 14px; }
+      .suffix { margin-left: 8px; color: var(--secondary-text-color); font-size: 14px; flex-shrink: 0; }
       .value-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     `;
   }
 }
-customElements.define("pill-select-input-row", PillSelectInputRow);
+customElements.define("pill-select-input-row", CustomSelectRow);

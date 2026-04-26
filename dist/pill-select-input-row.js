@@ -1,3 +1,4 @@
+// Pill Select Input Row - Version 1.0.1
 const LitElement = Object.getPrototypeOf(customElements.get("ha-panel-lovelace"));
 const html = LitElement.prototype.html;
 const css = LitElement.prototype.css;
